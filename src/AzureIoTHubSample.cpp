@@ -4,14 +4,10 @@
 
 #include <Arduino.h>
 #include "ESPectro.h"
-#include "DCX_AppSetting.h"
 #include "DCX_WifiManager.h"
 #include "AzureIoTHubMQTTClient.h"
 #include "Time.h"
 #include <ESP8266mDNS.h>
-
-ESPectro board;
-DCX_WifiManager wifiManager(AppSetting);
 
 const char *AP_SSID = "[YOUR_SSID_NAME]";
 const char *AP_PASS = "[YOUR_SSID_PASS]";
@@ -23,6 +19,16 @@ const char *AP_PASS = "[YOUR_SSID_PASS]";
 
 
 #define USE_BMP180              1 //Set this to 0 if you don't have the sensor and generate random sensor value to publish
+
+#define RELAY_GPIO_NO           10 //10
+#define ENABLE_ESPECTRO_OTA     1
+
+ESPectro board;
+DCX_WifiManager wifiManager(AppSetting);
+
+#if ENABLE_ESPECTRO_OTA
+ESPectro_Button button(ESPectro_V3);
+#endif
 
 #if USE_BMP180
 #include <Adafruit_BMP085.h>
@@ -63,11 +69,11 @@ void onActivateRelayCommand(String cmdName, JsonVariant jsonValue) {
         auto isAct = (params["Activated"]);
         if (isAct) {
             Serial.println("Activated true");
-            board.turnOnLED();
+            digitalWrite(RELAY_GPIO_NO, HIGH);
         }
         else {
             Serial.println("Activated false");
-            board.turnOffLED();
+            digitalWrite(RELAY_GPIO_NO, LOW);
         }
     }
 }
@@ -80,6 +86,9 @@ void setup() {
 
     AppSetting.load();
     board.turnOffAllNeopixel();
+
+    pinMode(RELAY_GPIO_NO, OUTPUT);
+    digitalWrite(RELAY_GPIO_NO, LOW);
 
 #if USE_BMP180
     if (bmp.begin()) {
@@ -114,7 +123,7 @@ void setup() {
 
 //    wifiManager.begin();
 //    wifiManager.begin("Andromax-M3Y-C634", "p@ssw0rd");
-    wifiManager.begin(AP_SSID, AP_SSID);
+    wifiManager.begin(AP_SSID, AP_PASS);
 
 
     //Handle Azure IoT Hub client events
@@ -123,6 +132,20 @@ void setup() {
     //Add command to handle and its handler
     //Command format is assumed like this: {"Name":"[COMMAND_NAME]","Parameters":[PARAMETERS_JSON]}
     client.onCloudCommand("ActivateRelay", onActivateRelayCommand);
+
+#if ENABLE_ESPECTRO_OTA
+    //Handle on-board button
+    button.begin();
+    button.onDoublePressed([]() {
+        DEBUG_SERIAL("Activating OTA");
+
+        if (WiFi.isConnected()) {
+            board.beginOTA();
+            board.fadeLED(1500);
+        }
+    });
+#endif
+
 }
 
 void readSensor(float *temp, float *press) {
@@ -140,6 +163,12 @@ void readSensor(float *temp, float *press) {
 
 void loop() {
     wifiManager.run();
+
+#if ENABLE_ESPECTRO_OTA
+    board.run();
+    button.run();
+#endif
+
     client.run();
 
     if (client.connected()) {
@@ -168,4 +197,6 @@ void loop() {
             client.sendEventWithKeyVal(keyVal);
         }
     }
+
+    delay(1);
 }
