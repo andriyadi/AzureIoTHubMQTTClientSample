@@ -1,0 +1,7 @@
+.pioenvs
+.piolibdeps
+CMakeLists.txt
+CMakeListsPrivate.txt
+.DS_Store
+.idea/
+_backup/
