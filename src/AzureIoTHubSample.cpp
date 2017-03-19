@@ -13,10 +13,14 @@
 ESPectro board;
 DCX_WifiManager wifiManager(AppSetting);
 
+const char *AP_SSID = "[YOUR_SSID_NAME]";
+const char *AP_PASS = "[YOUR_SSID_PASS]";
+
 // Azure IoT Hub Settings --> CHANGE THESE
-#define IOTHUB_HOSTNAME         "dycodex.azure-devices.net"
-#define DEVICE_ID               "espectro-01"
-#define DEVICE_KEY              "nhWXiles4WXOsM7DQjnTCrTk8zuZGdK55hHYF3BniLU=" //Primary key of the device
+#define IOTHUB_HOSTNAME         "[YOUR_IOTHUB_NAME].azure-devices.net"
+#define DEVICE_ID               "[YOUR_DEVICE_ID]"
+#define DEVICE_KEY              "[YOUR_DEVICE_KEY]" //Primary key of the device
+
 
 #define USE_BMP180              1 //Set this to 0 if you don't have the sensor and generate random sensor value to publish
 
@@ -31,11 +35,11 @@ unsigned long lastPublishMillis = 0;
 
 void connectToIoTHub() {
 
-    Serial.print("\nBeginning Azure IoT Hub Client... ");
+    DEBUG_SERIAL("\nBeginning Azure IoT Hub Client... ");
     if (client.begin()) {
-        Serial.println("OK");
+        DEBUG_SERIAL("OK\n");
     } else {
-        Serial.println("Could not connect to MQTT");
+        DEBUG_SERIAL("Failed\n");
     }
 }
 
@@ -79,7 +83,10 @@ void setup() {
 
 #if USE_BMP180
     if (bmp.begin()) {
-        Serial.println("BMP INIT SUCCESS");
+        DEBUG_SERIAL("BMP180 init OK\n");
+    }
+    else {
+        DEBUG_SERIAL("Oh no... BMP180 not init-ed\n");
     }
 #endif
 
@@ -107,7 +114,7 @@ void setup() {
 
 //    wifiManager.begin();
 //    wifiManager.begin("Andromax-M3Y-C634", "p@ssw0rd");
-    wifiManager.begin("DyWare-AP3", "p@ssw0rd");
+    wifiManager.begin(AP_SSID, AP_SSID);
 
 
     //Handle Azure IoT Hub client events
